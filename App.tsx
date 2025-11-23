@@ -240,6 +240,8 @@ const App: React.FC = () => {
       transactions,
       rates: marketRates,
       calculator: calculatorData,
+      budgets: [],
+      recurring: [],
       version: '2.0'
     };
     

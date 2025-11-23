@@ -1,3 +1,4 @@
+
 export enum TransactionType {
   INCOME = 'INCOME',
   EXPENSE = 'EXPENSE',
@@ -45,20 +46,39 @@ export interface UserProfile {
   createdAt: string;
 }
 
+export interface Budget {
+  category: string;
+  limit: number;
+}
+
+export interface RecurringTransaction {
+  id: string;
+  description: string;
+  amount: number;
+  type: TransactionType;
+  category: string;
+  currency: 'MMK' | 'THB' | 'USD' | 'SGD';
+  dayOfMonth: number; // 1-31
+  lastProcessedDate?: string;
+}
+
+export interface Badge {
+  id: string;
+  name: string;
+  description: string;
+  icon: string; // Lucide icon name or code
+  unlocked: boolean;
+  color: string;
+}
+
 export interface BackupData {
   profile: UserProfile;
   transactions: Transaction[];
   rates: MarketRates;
   calculator: CalculatorData;
+  budgets: Budget[];
+  recurring: RecurringTransaction[];
   version: string;
-}
-
-export interface SavingsGoal {
-  id: string;
-  name: string;
-  targetAmount: number;
-  currentAmount: number;
-  deadline: string;
 }
 
 export interface ExchangeRate {

@@ -1,20 +1,29 @@
+
 import React, { useState, useRef } from 'react';
-import { Plus, ArrowDownCircle, ArrowUpCircle, Wallet, Trash2, Calendar, Tag, AlignLeft, Download, Upload, FileSpreadsheet } from 'lucide-react';
-import { Transaction, TransactionType } from '../types';
+import { Plus, ArrowDownCircle, ArrowUpCircle, Wallet, Trash2, Calendar, Tag, AlignLeft, Download, Upload, FileSpreadsheet, Repeat, Clock, Check } from 'lucide-react';
+import { Transaction, TransactionType, RecurringTransaction } from '../types';
 
 interface TrackerProps {
   transactions: Transaction[];
   addTransaction: (t: Transaction) => void;
   deleteTransaction: (id: string) => void;
+  // Recurring Props
+  recurringTransactions?: RecurringTransaction[];
+  addRecurring?: (r: RecurringTransaction) => void;
+  deleteRecurring?: (id: string) => void;
 }
 
-const Tracker: React.FC<TrackerProps> = ({ transactions, addTransaction, deleteTransaction }) => {
+const Tracker: React.FC<TrackerProps> = ({ transactions, addTransaction, deleteTransaction, recurringTransactions = [], addRecurring, deleteRecurring }) => {
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState<TransactionType>(TransactionType.EXPENSE);
   const [currency, setCurrency] = useState<'MMK' | 'THB' | 'USD' | 'SGD'>('MMK');
   const [category, setCategory] = useState('General');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  
+  // Recurring Modal State
+  const [showRecurringModal, setShowRecurringModal] = useState(false);
+  const [recurringDay, setRecurringDay] = useState(1);
 
   const [filterType, setFilterType] = useState<'ALL' | TransactionType>('ALL');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -38,6 +47,23 @@ const Tracker: React.FC<TrackerProps> = ({ transactions, addTransaction, deleteT
     setDescription('');
   };
 
+  const handleRecurringSubmit = () => {
+      if (!amount || !description || !addRecurring) return;
+      addRecurring({
+          id: Date.now().toString(),
+          description,
+          amount: parseFloat(amount),
+          type,
+          category,
+          currency,
+          dayOfMonth: recurringDay
+      });
+      setShowRecurringModal(false);
+      setAmount('');
+      setDescription('');
+      alert("Recurring transaction rule added! It will be processed automatically on the due day.");
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -49,7 +75,6 @@ const Tracker: React.FC<TrackerProps> = ({ transactions, addTransaction, deleteT
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim();
         if (!line) continue;
-        
         const cols = line.split(',');
         if (cols.length < 4) continue;
 
@@ -109,12 +134,54 @@ const Tracker: React.FC<TrackerProps> = ({ transactions, addTransaction, deleteT
   ).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto w-full">
+    <div className="space-y-8 max-w-7xl mx-auto w-full relative">
+      
+      {/* Recurring Modal Overlay */}
+      {showRecurringModal && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in backdrop-blur-sm">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-md shadow-2xl border border-[#B38728]/30">
+                  <h3 className="text-xl font-bold text-[#1E2A38] dark:text-[#FCD34D] mb-4 flex items-center gap-2">
+                      <Repeat size={20} /> Setup Recurring Bill
+                  </h3>
+                  <div className="space-y-4">
+                      <div>
+                          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Description</label>
+                          <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} className="w-full p-3 bg-gray-50 dark:bg-slate-700 rounded-lg border dark:border-slate-600 outline-none dark:text-white" placeholder="e.g. Monthly Rent" />
+                      </div>
+                      <div className="flex gap-3">
+                          <div className="flex-1">
+                              <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Amount</label>
+                              <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full p-3 bg-gray-50 dark:bg-slate-700 rounded-lg border dark:border-slate-600 outline-none dark:text-white" placeholder="0.00" />
+                          </div>
+                          <div className="w-24">
+                              <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Day</label>
+                              <input type="number" min="1" max="31" value={recurringDay} onChange={(e) => setRecurringDay(Number(e.target.value))} className="w-full p-3 bg-gray-50 dark:bg-slate-700 rounded-lg border dark:border-slate-600 outline-none dark:text-white" />
+                          </div>
+                      </div>
+                      <div>
+                          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">Type</label>
+                          <select value={type} onChange={(e) => setType(e.target.value as TransactionType)} className="w-full p-3 bg-gray-50 dark:bg-slate-700 rounded-lg border dark:border-slate-600 outline-none dark:text-white">
+                              <option value={TransactionType.EXPENSE}>Expense</option>
+                              <option value={TransactionType.INCOME}>Income</option>
+                              <option value={TransactionType.SAVING}>Saving</option>
+                          </select>
+                      </div>
+                      <div className="flex gap-3 pt-4">
+                          <button onClick={() => setShowRecurringModal(false)} className="flex-1 py-3 rounded-lg bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300 font-bold">Cancel</button>
+                          <button onClick={handleRecurringSubmit} className="flex-1 py-3 rounded-lg bg-[#B38728] text-[#1E2A38] font-bold shadow-lg">Save Rule</button>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      )}
+
       <div className="flex flex-col xl:flex-row gap-8">
         
-        {/* Add Transaction Form */}
-        <div className="w-full xl:w-[450px] flex-shrink-0">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl shadow-gray-200/50 dark:shadow-black/30 border border-[#B38728]/20 xl:sticky xl:top-6 overflow-hidden transition-colors duration-300">
+        {/* Add Transaction / Recurring Form */}
+        <div className="w-full xl:w-[450px] flex-shrink-0 space-y-6">
+          
+          {/* Main Form */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl shadow-gray-200/50 dark:shadow-black/30 border border-[#B38728]/20 overflow-hidden transition-colors duration-300">
             <div className="bg-[#1E2A38] dark:bg-slate-900 p-6 text-white flex items-center gap-3 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-20 h-20 bg-[#B38728] rounded-full blur-2xl opacity-20 pointer-events-none"></div>
                 <div className="bg-gold-gradient p-2 rounded-lg relative z-10 shadow-lg">
@@ -124,6 +191,7 @@ const Tracker: React.FC<TrackerProps> = ({ transactions, addTransaction, deleteT
             </div>
             
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
+               {/* Transaction Type Toggle */}
                <div>
                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Transaction Type</label>
                  <div className="grid grid-cols-3 gap-2 p-1.5 bg-gray-100 dark:bg-slate-700 rounded-xl">
@@ -233,12 +301,34 @@ const Tracker: React.FC<TrackerProps> = ({ transactions, addTransaction, deleteT
                </button>
             </form>
           </div>
+
+          {/* Recurring Rules List */}
+          {recurringTransactions.length > 0 && (
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 border border-gray-100 dark:border-slate-700">
+                  <h3 className="font-bold text-[#1E2A38] dark:text-white mb-4 flex items-center gap-2">
+                      <Clock size={18} className="text-[#D4AF37]" /> Active Recurring Rules
+                  </h3>
+                  <div className="space-y-3">
+                      {recurringTransactions.map(r => (
+                          <div key={r.id} className="flex items-center justify-between text-sm p-3 bg-gray-50 dark:bg-slate-900 rounded-lg">
+                              <div>
+                                  <p className="font-bold text-gray-800 dark:text-gray-200">{r.description}</p>
+                                  <p className="text-xs text-gray-500">Repeats on Day {r.dayOfMonth}</p>
+                              </div>
+                              <button onClick={() => deleteRecurring && deleteRecurring(r.id)} className="text-red-400 hover:text-red-600">
+                                  <Trash2 size={16} />
+                              </button>
+                          </div>
+                      ))}
+                  </div>
+              </div>
+          )}
         </div>
 
         {/* Transaction List */}
         <div className="flex-1 bg-white dark:bg-slate-800 p-6 md:p-8 rounded-2xl shadow-xl shadow-gray-200/50 dark:shadow-black/30 border border-gray-100 dark:border-slate-700 min-w-0 overflow-hidden flex flex-col transition-colors duration-300">
            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
-             <div className="flex items-center gap-3">
+             <div className="flex items-center gap-3 flex-wrap">
                  <h3 className="text-xl font-bold text-[#1E2A38] dark:text-white">Recent Transactions</h3>
                  
                  {/* Actions */}
@@ -260,6 +350,12 @@ const Tracker: React.FC<TrackerProps> = ({ transactions, addTransaction, deleteT
                            className="hidden"
                         />
                     </label>
+                    <button
+                        onClick={() => setShowRecurringModal(true)}
+                        className="flex items-center gap-1 px-3 py-2 bg-[#B38728]/10 text-[#B38728] hover:bg-[#B38728] hover:text-white rounded-lg text-xs font-bold transition-all"
+                    >
+                        <Repeat size={14} /> recurring
+                    </button>
                  </div>
              </div>
              <select 

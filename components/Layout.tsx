@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { LayoutDashboard, Calculator, Wallet, Menu, X, PieChart, PenTool, Moon, Sun, User, ChevronRight, LogIn, LogOut } from 'lucide-react';
 import { UserProfile } from '../types';
@@ -68,7 +69,7 @@ const Layout: React.FC<LayoutProps> = ({
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'tracker', label: 'Income & Expenses', icon: Wallet },
-    { id: 'analytics', label: 'Analytics', icon: PieChart },
+    { id: 'analytics', label: 'Analytics & Budgets', icon: PieChart },
     { id: 'calculator', label: 'Financial Calculator', icon: Calculator },
     { id: 'tools', label: 'Tools & Backup', icon: PenTool },
   ];
@@ -76,11 +77,11 @@ const Layout: React.FC<LayoutProps> = ({
   return (
     <div className={`flex h-screen font-sans overflow-hidden selection:bg-[#B38728] selection:text-white transition-colors duration-300 ${isDarkMode ? 'dark bg-[#020617]' : 'bg-gray-50'}`}>
       {/* Sidebar (Desktop) */}
-      <aside className="hidden md:flex flex-col w-72 bg-[#0F172A] dark:bg-black text-white shadow-2xl z-30 flex-shrink-0 border-r border-[#B38728]/30 transition-colors duration-300 relative">
+      <aside className="hidden md:flex flex-col w-72 bg-[#0F172A] dark:bg-black text-white shadow-2xl z-30 flex-shrink-0 border-r border-[#B38728]/30 transition-colors duration-300 relative h-screen">
         {/* Background Texture */}
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none"></div>
 
-        <div className="p-8 flex items-center gap-4 border-b border-[#B38728]/20 relative overflow-hidden group">
+        <div className="p-8 flex items-center gap-4 border-b border-[#B38728]/20 relative overflow-hidden group flex-shrink-0">
           {/* Logo Container */}
           <div className="relative w-14 h-14 flex-shrink-0">
              {/* Subtle Back Glow */}
@@ -98,7 +99,8 @@ const Layout: React.FC<LayoutProps> = ({
           </div>
         </div>
         
-        <nav className="flex-1 py-8 px-4 space-y-3 relative z-10">
+        {/* Navigation - Takes available space */}
+        <nav className="flex-1 py-6 px-4 space-y-2 relative z-10 overflow-y-auto">
           {navItems.map((item) => (
             <button
               key={item.id}
@@ -109,102 +111,84 @@ const Layout: React.FC<LayoutProps> = ({
                   : 'text-gray-400 hover:bg-white/5 hover:text-[#FCD34D] hover:translate-x-1 border border-transparent hover:border-[#B38728]/20'
               }`}
             >
-              <item.icon size={22} className={activeTab === item.id ? "stroke-[2.5px]" : "stroke-[1.5px]"} />
-              <span className="text-sm relative z-10 tracking-wide">{item.label}</span>
+              <div className="flex items-center justify-center w-6 h-6">
+                 <item.icon size={22} className={`${activeTab === item.id ? "stroke-[2.5px]" : "stroke-[1.5px]"}`} />
+              </div>
+              <span className="text-sm relative z-10 tracking-wide leading-none pt-0.5">{item.label}</span>
               {activeTab === item.id && <div className="absolute inset-0 bg-white/20 animate-pulse"></div>}
             </button>
           ))}
         </nav>
 
-        {/* Auth / Profile Section (Desktop) */}
-        <div className="px-4 pb-2 relative z-20">
-            {user ? (
-               /* LOGGED IN MODE */
-               <div className="relative">
-                  <button 
-                    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                    className="w-full flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group"
-                  >
-                      <div className="w-10 h-10 rounded-full bg-gold-gradient p-[2px]">
-                         <div className="w-full h-full rounded-full bg-[#0F172A] flex items-center justify-center overflow-hidden">
-                             {/* Display Initials */}
-                             <span className="text-[#FCD34D] font-bold text-lg">{user.name.charAt(0)}</span>
-                         </div>
-                      </div>
-                      <div className="flex-1 text-left min-w-0">
-                          <p className="text-xs text-green-400 uppercase tracking-wider font-bold">● Online</p>
-                          <p className="font-bold text-sm text-white truncate">{user.name}</p>
-                      </div>
-                      <ChevronRight size={16} className={`text-gray-500 transition-transform ${isProfileMenuOpen ? 'rotate-90' : ''}`} />
-                  </button>
-
-                  {isProfileMenuOpen && (
-                    <div className="absolute bottom-full left-0 w-full mb-2 bg-[#1E293B] border border-[#B38728]/30 rounded-xl shadow-2xl overflow-hidden animate-fade-in">
-                        <div className="p-2">
-                           <p className="px-2 py-1 text-xs text-gray-500 truncate">{user.id}</p>
-                           <div className="h-px bg-white/10 my-1"></div>
-                            <button 
-                                onClick={onLogout}
-                                className="w-full flex items-center gap-2 p-2 rounded-lg text-sm text-red-400 hover:bg-white/5 font-bold"
-                            >
-                                <LogOut size={14} />
-                                Sign Out
-                            </button>
-                        </div>
-                    </div>
-                  )}
-               </div>
-            ) : (
-                /* GUEST MODE: Simple View */
-                <div className="space-y-2">
-                   {/* Guest Badge */}
-                   <div className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/5 rounded-xl">
-                        <div className="w-10 h-10 rounded-full bg-gray-700 p-[2px]">
-                            <div className="w-full h-full rounded-full bg-[#0F172A] flex items-center justify-center">
-                            <User size={18} className="text-gray-400" />
+        {/* Bottom Section: Auth + Theme + Footer */}
+        <div className="relative z-20 mt-auto bg-[#020617]/50 backdrop-blur-md border-t border-[#B38728]/20">
+            
+            <div className="px-4 pt-4 space-y-3">
+                {/* Auth Button */}
+                {user ? (
+                <div className="relative">
+                    <button 
+                        onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                        className="w-full flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group"
+                    >
+                        <div className="w-9 h-9 rounded-full bg-gold-gradient p-[2px] flex-shrink-0">
+                            <div className="w-full h-full rounded-full bg-[#0F172A] flex items-center justify-center overflow-hidden">
+                                <span className="text-[#FCD34D] font-bold text-sm">{user.name.charAt(0)}</span>
                             </div>
                         </div>
-                        <div className="flex-1 text-left">
-                            <p className="text-xs text-gray-500 uppercase tracking-wider">Mode</p>
-                            <p className="font-bold text-sm text-gray-300">Guest</p>
+                        <div className="flex-1 text-left min-w-0">
+                            <p className="text-[10px] text-green-400 uppercase tracking-wider font-bold">● Online</p>
+                            <p className="font-bold text-xs text-white truncate">{user.name}</p>
                         </div>
-                   </div>
-                   
-                   {/* Sign In Button */}
-                   <button 
-                      onClick={onLogin}
-                      className="w-full flex items-center justify-center gap-2 p-3 bg-white text-[#0F172A] hover:bg-gray-200 font-bold rounded-xl transition-all shadow-md"
-                   >
-                      <LogIn size={18} />
-                      Sign In with Google
-                   </button>
-                </div>
-            )}
-        </div>
+                        <ChevronRight size={14} className={`text-gray-500 transition-transform ${isProfileMenuOpen ? 'rotate-90' : ''}`} />
+                    </button>
 
-        {/* Theme Toggle (Desktop) */}
-        <div className="px-4 pb-4 relative z-10 pt-2">
-            <button 
-                onClick={toggleTheme}
-                className="w-full flex items-center justify-between px-5 py-3 rounded-xl bg-[#1E293B] hover:bg-[#334155] text-gray-400 hover:text-[#FCD34D] transition-all border border-[#B38728]/10 hover:border-[#B38728]/40 shadow-inner"
-            >
-                <span className="text-xs font-bold uppercase tracking-wider">{isDarkMode ? 'Dark Mode' : 'Light Mode'}</span>
-                {isDarkMode ? <Moon size={18} className="fill-current" /> : <Sun size={18} />}
-            </button>
-        </div>
-        
-        <div className="p-6 border-t border-[#B38728]/20 bg-[#020617]/50 backdrop-blur-sm relative z-10">
-          <div className="text-center">
-            <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Powered By</p>
-            <a 
-              href="https://web.facebook.com/PrimeNovaDigitalSolution" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="block bg-gold-text bg-clip-text text-transparent font-bold text-sm hover:scale-105 transition-transform"
-            >
-              PrimeNova Digital Solution
-            </a>
-          </div>
+                    {isProfileMenuOpen && (
+                        <div className="absolute bottom-full left-0 w-full mb-2 bg-[#1E293B] border border-[#B38728]/30 rounded-xl shadow-2xl overflow-hidden animate-fade-in">
+                            <div className="p-2">
+                                <button 
+                                    onClick={onLogout}
+                                    className="w-full flex items-center gap-2 p-2 rounded-lg text-sm text-red-400 hover:bg-white/5 font-bold"
+                                >
+                                    <LogOut size={14} />
+                                    Sign Out
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+                ) : (
+                    <button 
+                        onClick={onLogin}
+                        className="w-full flex items-center justify-center gap-2 p-3 bg-white text-[#0F172A] hover:bg-gray-200 font-bold rounded-xl transition-all shadow-md text-xs"
+                    >
+                        <LogIn size={16} />
+                        Sign In with Google
+                    </button>
+                )}
+
+                {/* Theme Toggle */}
+                <button 
+                    onClick={toggleTheme}
+                    className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-[#1E293B] hover:bg-[#334155] text-gray-400 hover:text-[#FCD34D] transition-all border border-[#B38728]/10 hover:border-[#B38728]/40 shadow-inner"
+                >
+                    <span className="text-[10px] font-bold uppercase tracking-wider">{isDarkMode ? 'Dark Mode' : 'Light Mode'}</span>
+                    {isDarkMode ? <Moon size={16} className="fill-current" /> : <Sun size={16} />}
+                </button>
+            </div>
+
+            {/* Footer Credit */}
+            <div className="p-4 text-center">
+                <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Powered By</p>
+                <a 
+                href="https://web.facebook.com/PrimeNovaDigitalSolution" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="block bg-gold-text bg-clip-text text-transparent font-bold text-xs hover:scale-105 transition-transform"
+                >
+                PrimeNova Digital Solution
+                </a>
+            </div>
         </div>
       </aside>
 
