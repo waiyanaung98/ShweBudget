@@ -4,7 +4,7 @@ import Tracker from './components/Tracker';
 import Calculator from './components/Calculator';
 import Analytics from './components/Analytics';
 import Tools from './components/Tools';
-import { Transaction, TransactionType, MarketRates } from './types';
+import { Transaction, TransactionType, MarketRates, CalculatorData } from './types';
 import { Wallet, ArrowUpCircle, ArrowDownCircle, Settings } from 'lucide-react';
 
 // Mock Initial Data
@@ -22,6 +22,20 @@ const INITIAL_RATES: MarketRates = {
   USD: 4500,
   SGD: 3300, 
   Gold: 6500000 
+};
+
+const INITIAL_CALCULATOR_DATA: CalculatorData = {
+  targetAmount: 100000000,
+  years: 4,
+  interestRate: 8,
+  monthlyDeposit: 500000,
+  fvYears: 3,
+  fvRate: 8,
+  loanAmount: 30000000,
+  loanTermYears: 5,
+  loanRate: 10,
+  monthlyExpense: 500000,
+  fundMonths: 6
 };
 
 const App: React.FC = () => {
@@ -67,6 +81,12 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : INITIAL_RATES;
   });
 
+  // Calculator Data State (Persisted)
+  const [calculatorData, setCalculatorData] = useState<CalculatorData>(() => {
+    const saved = localStorage.getItem('calculatorData');
+    return saved ? JSON.parse(saved) : INITIAL_CALCULATOR_DATA;
+  });
+
   useEffect(() => {
     localStorage.setItem('transactions', JSON.stringify(transactions));
   }, [transactions]);
@@ -74,6 +94,10 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('marketRates', JSON.stringify(marketRates));
   }, [marketRates]);
+
+  useEffect(() => {
+    localStorage.setItem('calculatorData', JSON.stringify(calculatorData));
+  }, [calculatorData]);
 
   const addTransaction = (t: Transaction) => {
     setTransactions([...transactions, t]);
@@ -203,7 +227,7 @@ const App: React.FC = () => {
       case 'tracker':
         return <Tracker transactions={transactions} addTransaction={addTransaction} deleteTransaction={deleteTransaction} />;
       case 'calculator':
-        return <Calculator rates={marketRates} />;
+        return <Calculator rates={marketRates} data={calculatorData} onUpdate={setCalculatorData} />;
       case 'analytics':
         return <Analytics transactions={transactions} rates={marketRates} />;
       case 'tools':

@@ -1,86 +1,70 @@
 import React, { useState, useEffect } from 'react';
 import { Target, TrendingUp, ShieldCheck, Car, Home, Calendar, Globe } from 'lucide-react';
-import { MarketRates } from '../types';
+import { MarketRates, CalculatorData } from '../types';
 
 type CalculatorTab = 'target' | 'fv' | 'loan' | 'emergency';
 
 interface CalculatorProps {
     rates: MarketRates;
+    data: CalculatorData;
+    onUpdate: (newData: CalculatorData) => void;
 }
 
-const Calculator: React.FC<CalculatorProps> = ({ rates }) => {
+const Calculator: React.FC<CalculatorProps> = ({ rates, data, onUpdate }) => {
   const [activeTab, setActiveTab] = useState<CalculatorTab>('target');
 
   // --- Common State ---
   const [currency, setCurrency] = useState<'MMK' | 'THB' | 'USD' | 'SGD'>('MMK');
-  // Exchange rate is now derived from props `rates`
-
-  // --- 1. Target Planner State (PMT) ---
-  const [targetAmount, setTargetAmount] = useState<number>(100000000);
-  const [years, setYears] = useState<number>(4);
-  const [interestRate, setInterestRate] = useState<number>(8);
+  
+  // --- Derived Calculations State ---
   const [monthlySave, setMonthlySave] = useState<number>(0);
-
-  // --- 2. Future Value State (FV) ---
-  const [monthlyDeposit, setMonthlyDeposit] = useState<number>(500000);
-  const [fvYears, setFvYears] = useState<number>(3);
-  const [fvRate, setFvRate] = useState<number>(8);
   const [futureValue, setFutureValue] = useState<number>(0);
-
-  // --- 3. Loan Calculator State ---
-  const [loanAmount, setLoanAmount] = useState<number>(30000000);
-  const [loanTermYears, setLoanTermYears] = useState<number>(5);
-  const [loanRate, setLoanRate] = useState<number>(10); // Annual
   const [monthlyPayment, setMonthlyPayment] = useState<number>(0);
   const [totalInterest, setTotalInterest] = useState<number>(0);
-
-  // --- 4. Emergency Fund State ---
-  const [monthlyExpense, setMonthlyExpense] = useState<number>(500000);
-  const [fundMonths, setFundMonths] = useState<number>(6);
   const [fundTotal, setFundTotal] = useState<number>(0);
 
   // --- Calculations ---
 
   // 1. Target PMT
   useEffect(() => {
-    const r = interestRate / 100;
-    const n = years;
+    const r = data.interestRate / 100;
+    const n = data.years;
     let pmt = 0;
-    if (r === 0) pmt = targetAmount / (n * 12);
+    if (r === 0) pmt = data.targetAmount / (n * 12);
     else {
         const monthlyRate = r / 12;
         const numMonths = n * 12;
-        pmt = targetAmount * monthlyRate / (Math.pow(1 + monthlyRate, numMonths) - 1);
+        pmt = data.targetAmount * monthlyRate / (Math.pow(1 + monthlyRate, numMonths) - 1);
     }
     setMonthlySave(pmt);
-  }, [targetAmount, years, interestRate]);
+  }, [data.targetAmount, data.years, data.interestRate]);
 
   // 2. FV
   useEffect(() => {
-     const r = fvRate / 100 / 12;
-     const n = fvYears * 12;
+     const r = data.fvRate / 100 / 12;
+     const n = data.fvYears * 12;
      let fv = 0;
-     if (r === 0) fv = monthlyDeposit * n;
-     else fv = monthlyDeposit * ((Math.pow(1 + r, n) - 1) / r);
+     if (r === 0) fv = data.monthlyDeposit * n;
+     else fv = data.monthlyDeposit * ((Math.pow(1 + r, n) - 1) / r);
      setFutureValue(fv);
-  }, [monthlyDeposit, fvYears, fvRate]);
+  }, [data.monthlyDeposit, data.fvYears, data.fvRate]);
 
   // 3. Loan (EMI)
   useEffect(() => {
-    const r = loanRate / 100 / 12;
-    const n = loanTermYears * 12;
+    const r = data.loanRate / 100 / 12;
+    const n = data.loanTermYears * 12;
     let emi = 0;
-    if (r === 0) emi = loanAmount / n;
-    else emi = (loanAmount * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+    if (r === 0) emi = data.loanAmount / n;
+    else emi = (data.loanAmount * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
     
     setMonthlyPayment(emi);
-    setTotalInterest((emi * n) - loanAmount);
-  }, [loanAmount, loanTermYears, loanRate]);
+    setTotalInterest((emi * n) - data.loanAmount);
+  }, [data.loanAmount, data.loanTermYears, data.loanRate]);
 
   // 4. Emergency Fund
   useEffect(() => {
-    setFundTotal(monthlyExpense * fundMonths);
-  }, [monthlyExpense, fundMonths]);
+    setFundTotal(data.monthlyExpense * data.fundMonths);
+  }, [data.monthlyExpense, data.fundMonths]);
 
 
   // --- Helpers ---
@@ -94,9 +78,9 @@ const Calculator: React.FC<CalculatorProps> = ({ rates }) => {
 
   // Projection Helper for FV
   const calculateProjection = (months: number) => {
-    const r = fvRate / 100 / 12;
-    if (r === 0) return monthlyDeposit * months;
-    return monthlyDeposit * ((Math.pow(1 + r, months) - 1) / r);
+    const r = data.fvRate / 100 / 12;
+    if (r === 0) return data.monthlyDeposit * months;
+    return data.monthlyDeposit * ((Math.pow(1 + r, months) - 1) / r);
   };
 
   const InputField = ({ label, value, onChange, type = "number", suffix = "" }: any) => (
@@ -167,8 +151,8 @@ const Calculator: React.FC<CalculatorProps> = ({ rates }) => {
                   <div className="flex rounded-xl shadow-sm">
                     <input 
                       type="number" 
-                      value={targetAmount}
-                      onChange={(e) => setTargetAmount(Number(e.target.value))}
+                      value={data.targetAmount}
+                      onChange={(e) => onUpdate({...data, targetAmount: Number(e.target.value)})}
                       className="w-full flex-1 p-4 bg-gray-50 dark:bg-[#1E293B] border border-gray-200 dark:border-gray-700 rounded-l-xl text-gray-900 dark:text-white font-bold text-xl focus:bg-white dark:focus:bg-[#0F172A] focus:ring-2 focus:ring-[#D4AF37] focus:border-transparent outline-none transition-all z-10 min-w-0"
                     />
                     <select 
@@ -184,8 +168,8 @@ const Calculator: React.FC<CalculatorProps> = ({ rates }) => {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <InputField label="Time (Years)" value={years} onChange={(e: any) => setYears(Number(e.target.value))} suffix="Years" />
-                  <InputField label="Interest Rate (%)" value={interestRate} onChange={(e: any) => setInterestRate(Number(e.target.value))} suffix="% / Year" />
+                  <InputField label="Time (Years)" value={data.years} onChange={(e: any) => onUpdate({...data, years: Number(e.target.value)})} suffix="Years" />
+                  <InputField label="Interest Rate (%)" value={data.interestRate} onChange={(e: any) => onUpdate({...data, interestRate: Number(e.target.value)})} suffix="% / Year" />
                 </div>
               </div>
 
@@ -239,10 +223,10 @@ const Calculator: React.FC<CalculatorProps> = ({ rates }) => {
             <div className="p-6 md:p-8">
                 <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 mb-12">
                     <div className="lg:col-span-7 space-y-6">
-                        <InputField label="Monthly Deposit (MMK)" value={monthlyDeposit} onChange={(e: any) => setMonthlyDeposit(Number(e.target.value))} suffix="MMK" />
+                        <InputField label="Monthly Deposit (MMK)" value={data.monthlyDeposit} onChange={(e: any) => onUpdate({...data, monthlyDeposit: Number(e.target.value)})} suffix="MMK" />
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <InputField label="Duration (Years)" value={fvYears} onChange={(e: any) => setFvYears(Number(e.target.value))} suffix="Years" />
-                            <InputField label="Interest Rate (%)" value={fvRate} onChange={(e: any) => setFvRate(Number(e.target.value))} suffix="% / Year" />
+                            <InputField label="Duration (Years)" value={data.fvYears} onChange={(e: any) => onUpdate({...data, fvYears: Number(e.target.value)})} suffix="Years" />
+                            <InputField label="Interest Rate (%)" value={data.fvRate} onChange={(e: any) => onUpdate({...data, fvRate: Number(e.target.value)})} suffix="% / Year" />
                         </div>
                     </div>
 
@@ -255,11 +239,11 @@ const Calculator: React.FC<CalculatorProps> = ({ rates }) => {
                             <div className="space-y-3 bg-white dark:bg-[#0F172A] p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
                                 <div className="flex justify-between text-sm border-b border-gray-100 dark:border-gray-700 pb-2">
                                     <span className="text-gray-500 dark:text-gray-400">Total Principal</span>
-                                    <span className="font-semibold text-gray-900 dark:text-gray-200 break-all pl-2">{formatMoney(monthlyDeposit * 12 * fvYears, 'MMK')}</span>
+                                    <span className="font-semibold text-gray-900 dark:text-gray-200 break-all pl-2">{formatMoney(data.monthlyDeposit * 12 * data.fvYears, 'MMK')}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-gray-500 dark:text-gray-400">Interest Earned</span>
-                                    <span className="font-bold text-[#B45309] dark:text-[#FCD34D] break-all pl-2">+{formatMoney(futureValue - (monthlyDeposit * 12 * fvYears), 'MMK')}</span>
+                                    <span className="font-bold text-[#B45309] dark:text-[#FCD34D] break-all pl-2">+{formatMoney(futureValue - (data.monthlyDeposit * 12 * data.fvYears), 'MMK')}</span>
                                 </div>
                             </div>
                         </div>
@@ -270,7 +254,7 @@ const Calculator: React.FC<CalculatorProps> = ({ rates }) => {
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-8">
                     <div className="flex items-center gap-2 mb-6">
                          <Calendar className="text-[#D4AF37]" size={20}/>
-                         <h3 className="text-lg font-bold text-[#0F172A] dark:text-white">Savings Milestone Projection (If you save {new Intl.NumberFormat('en-US', {notation:"compact"}).format(monthlyDeposit)} monthly)</h3>
+                         <h3 className="text-lg font-bold text-[#0F172A] dark:text-white">Savings Milestone Projection (If you save {new Intl.NumberFormat('en-US', {notation:"compact"}).format(data.monthlyDeposit)} monthly)</h3>
                     </div>
                     
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -311,10 +295,10 @@ const Calculator: React.FC<CalculatorProps> = ({ rates }) => {
 
              <div className="p-6 md:p-8 grid lg:grid-cols-12 gap-8 lg:gap-12">
                 <div className="lg:col-span-7 space-y-6">
-                    <InputField label="Loan Amount (Principal)" value={loanAmount} onChange={(e: any) => setLoanAmount(Number(e.target.value))} suffix="MMK" />
+                    <InputField label="Loan Amount (Principal)" value={data.loanAmount} onChange={(e: any) => onUpdate({...data, loanAmount: Number(e.target.value)})} suffix="MMK" />
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <InputField label="Loan Term (Years)" value={loanTermYears} onChange={(e: any) => setLoanTermYears(Number(e.target.value))} suffix="Years" />
-                        <InputField label="Interest Rate (%)" value={loanRate} onChange={(e: any) => setLoanRate(Number(e.target.value))} suffix="% / Year" />
+                        <InputField label="Loan Term (Years)" value={data.loanTermYears} onChange={(e: any) => onUpdate({...data, loanTermYears: Number(e.target.value)})} suffix="Years" />
+                        <InputField label="Interest Rate (%)" value={data.loanRate} onChange={(e: any) => onUpdate({...data, loanRate: Number(e.target.value)})} suffix="% / Year" />
                     </div>
                 </div>
                 <div className="lg:col-span-5">
@@ -328,7 +312,7 @@ const Calculator: React.FC<CalculatorProps> = ({ rates }) => {
                             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-indigo-200 dark:border-gray-600">
                                 <div>
                                     <p className="text-xs text-indigo-500 dark:text-indigo-300 uppercase font-bold">Total Payment</p>
-                                    <p className="font-semibold text-indigo-900 dark:text-gray-200 break-all text-sm">{formatMoney(monthlyPayment * loanTermYears * 12, 'MMK')}</p>
+                                    <p className="font-semibold text-indigo-900 dark:text-gray-200 break-all text-sm">{formatMoney(monthlyPayment * data.loanTermYears * 12, 'MMK')}</p>
                                 </div>
                                 <div>
                                     <p className="text-xs text-indigo-500 dark:text-indigo-300 uppercase font-bold">Total Interest</p>
@@ -355,19 +339,19 @@ const Calculator: React.FC<CalculatorProps> = ({ rates }) => {
                 
                 <div className="p-6 md:p-8 grid lg:grid-cols-12 gap-8 lg:gap-12">
                     <div className="lg:col-span-7 space-y-6">
-                        <InputField label="Monthly Necessary Expenses" value={monthlyExpense} onChange={(e: any) => setMonthlyExpense(Number(e.target.value))} suffix="MMK" />
+                        <InputField label="Monthly Necessary Expenses" value={data.monthlyExpense} onChange={(e: any) => onUpdate({...data, monthlyExpense: Number(e.target.value)})} suffix="MMK" />
                         <div className="space-y-2">
                             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Coverage Duration (Months)</label>
                             <input 
                               type="range" 
                               min="1" max="12" 
-                              value={fundMonths} 
-                              onChange={(e) => setFundMonths(Number(e.target.value))}
+                              value={data.fundMonths} 
+                              onChange={(e) => onUpdate({...data, fundMonths: Number(e.target.value)})}
                               className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#D4AF37]"
                             />
                             <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 font-medium">
                                 <span>1 Month</span>
-                                <span className="text-[#0F172A] dark:text-white font-bold text-base">{fundMonths} Months</span>
+                                <span className="text-[#0F172A] dark:text-white font-bold text-base">{data.fundMonths} Months</span>
                                 <span>1 Year</span>
                             </div>
                         </div>

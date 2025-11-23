@@ -21,6 +21,24 @@ export interface MarketRates {
   Gold: number; // 1 Kyattha = ? MMK
 }
 
+export interface CalculatorData {
+  // Target Planner
+  targetAmount: number;
+  years: number;
+  interestRate: number;
+  // FV
+  monthlyDeposit: number;
+  fvYears: number;
+  fvRate: number;
+  // Loan
+  loanAmount: number;
+  loanTermYears: number;
+  loanRate: number;
+  // Emergency
+  monthlyExpense: number;
+  fundMonths: number;
+}
+
 export interface SavingsGoal {
   id: string;
   name: string;

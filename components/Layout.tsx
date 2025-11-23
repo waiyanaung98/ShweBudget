@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Calculator, Wallet, Menu, X, PieChart, PenTool, Gem, Moon, Sun } from 'lucide-react';
+import { LayoutDashboard, Calculator, Wallet, Menu, X, PieChart, PenTool, Bean, Moon, Sun } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -28,10 +28,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, isDa
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none"></div>
 
         <div className="p-8 flex items-center gap-4 border-b border-[#B38728]/20 relative overflow-hidden">
-          {/* New Gem Logo */}
+          {/* Gold Bean Logo (Shwe Pae) */}
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-300 via-yellow-500 to-amber-600 flex items-center justify-center text-white shadow-[0_0_25px_rgba(251,191,36,0.6)] z-10 shrink-0 ring-1 ring-[#FCF6BA]/50 relative overflow-hidden group">
             <div className="absolute inset-0 bg-white/30 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
-            <Gem size={26} strokeWidth={2.5} className="relative z-10 drop-shadow-md group-hover:scale-110 transition-transform duration-300" />
+            <Bean size={26} strokeWidth={2.5} className="relative z-10 drop-shadow-md group-hover:scale-110 transition-transform duration-300 -rotate-45" />
           </div>
           <div className="z-10 min-w-0">
             <span className="text-2xl font-bold tracking-tight block bg-gold-text bg-clip-text text-transparent drop-shadow-sm">ShweBudget</span>
@@ -88,7 +88,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, isDa
         <header className="md:hidden flex items-center justify-between p-4 bg-[#0F172A] dark:bg-black text-white shadow-md z-40 sticky top-0 flex-shrink-0 border-b border-[#B38728]/30">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-300 via-yellow-500 to-amber-600 flex items-center justify-center text-white shadow-[0_0_15px_rgba(251,191,36,0.5)] ring-1 ring-[#FCF6BA]/30">
-              <Gem size={20} strokeWidth={2.5} className="drop-shadow-sm" />
+              <Bean size={20} strokeWidth={2.5} className="drop-shadow-sm -rotate-45" />
             </div>
             <span className="font-bold text-lg bg-gold-text bg-clip-text text-transparent">ShweBudget</span>
           </div>
