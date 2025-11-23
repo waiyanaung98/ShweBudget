@@ -114,9 +114,9 @@ const Tools: React.FC<ToolsProps> = ({ rates, updateRates, onExportData, onImpor
                         type="number" 
                         value={localRates.THB}
                         onChange={(e) => setLocalRates({...localRates, THB: Number(e.target.value)})}
-                        className="w-full p-4 bg-transparent font-bold text-xl text-[#1E2A38] dark:text-white outline-none"
+                        className="flex-1 p-4 bg-transparent font-bold text-xl text-[#1E2A38] dark:text-white outline-none min-w-0"
                     />
-                    <span className="pr-4 font-bold text-gray-400 text-sm">MMK</span>
+                    <span className="pr-4 font-bold text-gray-400 text-sm whitespace-nowrap">MMK</span>
                 </div>
             </div>
 
@@ -131,9 +131,9 @@ const Tools: React.FC<ToolsProps> = ({ rates, updateRates, onExportData, onImpor
                         type="number" 
                         value={localRates.USD}
                         onChange={(e) => setLocalRates({...localRates, USD: Number(e.target.value)})}
-                        className="w-full p-4 bg-transparent font-bold text-xl text-[#1E2A38] dark:text-white outline-none"
+                        className="flex-1 p-4 bg-transparent font-bold text-xl text-[#1E2A38] dark:text-white outline-none min-w-0"
                     />
-                    <span className="pr-4 font-bold text-gray-400 text-sm">MMK</span>
+                    <span className="pr-4 font-bold text-gray-400 text-sm whitespace-nowrap">MMK</span>
                 </div>
             </div>
 
@@ -148,9 +148,9 @@ const Tools: React.FC<ToolsProps> = ({ rates, updateRates, onExportData, onImpor
                         type="number" 
                         value={localRates.SGD}
                         onChange={(e) => setLocalRates({...localRates, SGD: Number(e.target.value)})}
-                        className="w-full p-4 bg-transparent font-bold text-xl text-[#1E2A38] dark:text-white outline-none"
+                        className="flex-1 p-4 bg-transparent font-bold text-xl text-[#1E2A38] dark:text-white outline-none min-w-0"
                     />
-                    <span className="pr-4 font-bold text-gray-400 text-sm">MMK</span>
+                    <span className="pr-4 font-bold text-gray-400 text-sm whitespace-nowrap">MMK</span>
                 </div>
             </div>
 
@@ -264,7 +264,7 @@ const Tools: React.FC<ToolsProps> = ({ rates, updateRates, onExportData, onImpor
                             value={convAmount}
                             onChange={(e) => setConvAmount(e.target.value)}
                             placeholder="Amount"
-                            className="flex-1 p-5 bg-transparent text-2xl font-bold text-gray-900 dark:text-white outline-none placeholder-gray-400"
+                            className="flex-1 p-5 bg-transparent text-2xl font-bold text-gray-900 dark:text-white outline-none placeholder-gray-400 min-w-0"
                         />
                         <select 
                             value={convFrom}
