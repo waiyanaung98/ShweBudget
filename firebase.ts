@@ -2,15 +2,13 @@ import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 
-// TODO: Replace with your actual Firebase project configuration
-// Get this from: Firebase Console -> Project Settings -> General -> Your Apps
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "SENDER_ID",
-  appId: "APP_ID"
+  apiKey: "AIzaSyDOg9ltt-Nuu0siyPS7E4tgw669SkM8eVw",
+  authDomain: "shwebudget.firebaseapp.com",
+  projectId: "shwebudget",
+  storageBucket: "shwebudget.firebasestorage.app",
+  messagingSenderId: "462219103120",
+  appId: "1:462219103120:web:e6326536dc184cbe20c115"
 };
 
 let app: FirebaseApp | undefined;
@@ -19,23 +17,17 @@ let googleProvider: GoogleAuthProvider | undefined;
 let db: Firestore | undefined;
 
 try {
-  // Check if config is dummy
-  const isDummyConfig = !firebaseConfig.apiKey || firebaseConfig.apiKey === "YOUR_API_KEY";
-  
-  if (!isDummyConfig) {
-    if (!getApps().length) {
-      app = initializeApp(firebaseConfig);
-    } else {
-      app = getApps()[0];
-    }
-
-    if (app) {
-      auth = getAuth(app);
-      googleProvider = new GoogleAuthProvider();
-      db = getFirestore(app);
-    }
+  // Ensure app is only initialized once
+  if (!getApps().length) {
+    app = initializeApp(firebaseConfig);
   } else {
-      console.warn("Firebase Config is missing or dummy. App allows Guest Mode, but Google Sign-In will fail until configured.");
+    app = getApps()[0];
+  }
+
+  if (app) {
+    auth = getAuth(app);
+    googleProvider = new GoogleAuthProvider();
+    db = getFirestore(app);
   }
 } catch (error) {
   console.error("Firebase Initialization Error:", error);
