@@ -67,7 +67,7 @@ const App: React.FC = () => {
   // 1. Auth Listener
   useEffect(() => {
     if (!auth) {
-        // Firebase Failed to Init (likely no config)
+        // If Firebase isn't configured, stop loading auth and stay in guest mode
         setIsAuthLoading(false);
         return;
     }
@@ -171,15 +171,21 @@ const App: React.FC = () => {
 
   // AUTH ACTIONS
   const handleLogin = async () => {
-    if (!auth) {
-        alert("Firebase not configured. Running in Guest Mode.");
+    if (!auth || !googleProvider) {
+        alert("Firebase Configuration Missing.\nPlease set up 'firebase.ts' with your API keys to enable Google Login.");
         return;
     }
     try {
       await signInWithPopup(auth, googleProvider);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login Error:", error);
-      alert("Could not sign in. Please check your internet connection or Firebase config.");
+      if (error.code === 'auth/configuration-not-found' || error.code === 'auth/api-key-not-valid') {
+          alert("Login Failed: Invalid Firebase Configuration. Please check your API Keys.");
+      } else if (error.code === 'auth/popup-closed-by-user') {
+          // Ignore user closing popup
+      } else {
+          alert("Login failed. Check console for details.");
+      }
     }
   };
 
@@ -187,6 +193,7 @@ const App: React.FC = () => {
     if (auth) {
         await signOut(auth);
         setActiveTab('dashboard');
+        window.location.reload(); // Refresh to ensure clean state switch to Guest
     }
   };
 
@@ -329,7 +336,8 @@ const App: React.FC = () => {
   );
 
   const renderContent = () => {
-    if (isAuthLoading) return <div className="h-full flex items-center justify-center text-[#D4AF37] animate-pulse">Connecting...</div>;
+    // Do not show loading for Auth if in Guest mode
+    if (isAuthLoading && auth) return <div className="h-full flex items-center justify-center text-[#D4AF37] animate-pulse">Connecting...</div>;
 
     switch (activeTab) {
       case 'dashboard':
