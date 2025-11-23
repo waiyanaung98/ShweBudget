@@ -39,6 +39,20 @@ export interface CalculatorData {
   fundMonths: number;
 }
 
+export interface UserProfile {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
+export interface BackupData {
+  profile: UserProfile;
+  transactions: Transaction[];
+  rates: MarketRates;
+  calculator: CalculatorData;
+  version: string;
+}
+
 export interface SavingsGoal {
   id: string;
   name: string;

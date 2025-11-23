@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Calculator, Wallet, Menu, X, PieChart, PenTool, Moon, Sun } from 'lucide-react';
+import { LayoutDashboard, Calculator, Wallet, Menu, X, PieChart, PenTool, Moon, Sun, User, ChevronRight, LogIn, LogOut } from 'lucide-react';
+import { UserProfile } from '../types';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -7,6 +8,10 @@ interface LayoutProps {
   setActiveTab: (tab: string) => void;
   isDarkMode: boolean;
   toggleTheme: () => void;
+  // Auth Props
+  user: UserProfile | null; // Firebase User
+  onLogin: () => void;
+  onLogout: () => void;
 }
 
 // Custom Premium Gold Coin (Round) Logo
@@ -47,15 +52,25 @@ const GoldCoinLogo = ({ className }: { className?: string }) => (
   </svg>
 );
 
-const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, isDarkMode, toggleTheme }) => {
+const Layout: React.FC<LayoutProps> = ({ 
+  children, 
+  activeTab, 
+  setActiveTab, 
+  isDarkMode, 
+  toggleTheme,
+  user,
+  onLogin,
+  onLogout
+}) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'tracker', label: 'Income & Expenses', icon: Wallet },
     { id: 'analytics', label: 'Analytics', icon: PieChart },
     { id: 'calculator', label: 'Financial Calculator', icon: Calculator },
-    { id: 'tools', label: 'Tools & Settings', icon: PenTool },
+    { id: 'tools', label: 'Tools & Backup', icon: PenTool },
   ];
 
   return (
@@ -101,8 +116,74 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, isDa
           ))}
         </nav>
 
+        {/* Auth / Profile Section (Desktop) */}
+        <div className="px-4 pb-2 relative z-20">
+            {user ? (
+               /* LOGGED IN MODE */
+               <div className="relative">
+                  <button 
+                    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                    className="w-full flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group"
+                  >
+                      <div className="w-10 h-10 rounded-full bg-gold-gradient p-[2px]">
+                         <div className="w-full h-full rounded-full bg-[#0F172A] flex items-center justify-center overflow-hidden">
+                             {/* Display Initials */}
+                             <span className="text-[#FCD34D] font-bold text-lg">{user.name.charAt(0)}</span>
+                         </div>
+                      </div>
+                      <div className="flex-1 text-left min-w-0">
+                          <p className="text-xs text-green-400 uppercase tracking-wider font-bold">● Online</p>
+                          <p className="font-bold text-sm text-white truncate">{user.name}</p>
+                      </div>
+                      <ChevronRight size={16} className={`text-gray-500 transition-transform ${isProfileMenuOpen ? 'rotate-90' : ''}`} />
+                  </button>
+
+                  {isProfileMenuOpen && (
+                    <div className="absolute bottom-full left-0 w-full mb-2 bg-[#1E293B] border border-[#B38728]/30 rounded-xl shadow-2xl overflow-hidden animate-fade-in">
+                        <div className="p-2">
+                           <p className="px-2 py-1 text-xs text-gray-500 truncate">{user.id}</p>
+                           <div className="h-px bg-white/10 my-1"></div>
+                            <button 
+                                onClick={onLogout}
+                                className="w-full flex items-center gap-2 p-2 rounded-lg text-sm text-red-400 hover:bg-white/5 font-bold"
+                            >
+                                <LogOut size={14} />
+                                Sign Out
+                            </button>
+                        </div>
+                    </div>
+                  )}
+               </div>
+            ) : (
+                /* GUEST MODE: Simple View */
+                <div className="space-y-2">
+                   {/* Guest Badge */}
+                   <div className="w-full flex items-center gap-3 p-3 bg-white/5 border border-white/5 rounded-xl">
+                        <div className="w-10 h-10 rounded-full bg-gray-700 p-[2px]">
+                            <div className="w-full h-full rounded-full bg-[#0F172A] flex items-center justify-center">
+                            <User size={18} className="text-gray-400" />
+                            </div>
+                        </div>
+                        <div className="flex-1 text-left">
+                            <p className="text-xs text-gray-500 uppercase tracking-wider">Mode</p>
+                            <p className="font-bold text-sm text-gray-300">Guest</p>
+                        </div>
+                   </div>
+                   
+                   {/* Sign In Button */}
+                   <button 
+                      onClick={onLogin}
+                      className="w-full flex items-center justify-center gap-2 p-3 bg-white text-[#0F172A] hover:bg-gray-200 font-bold rounded-xl transition-all shadow-md"
+                   >
+                      <LogIn size={18} />
+                      Sign In with Google
+                   </button>
+                </div>
+            )}
+        </div>
+
         {/* Theme Toggle (Desktop) */}
-        <div className="px-4 pb-4 relative z-10">
+        <div className="px-4 pb-4 relative z-10 pt-2">
             <button 
                 onClick={toggleTheme}
                 className="w-full flex items-center justify-between px-5 py-3 rounded-xl bg-[#1E293B] hover:bg-[#334155] text-gray-400 hover:text-[#FCD34D] transition-all border border-[#B38728]/10 hover:border-[#B38728]/40 shadow-inner"
@@ -155,6 +236,46 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, isDa
         {/* Mobile Menu Overlay */}
         {isMobileMenuOpen && (
           <div className="absolute inset-0 bg-[#0F172A] dark:bg-black z-30 pt-20 px-4 md:hidden animate-fade-in flex flex-col">
+            <div className="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
+                {user ? (
+                   /* Mobile User View */
+                   <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                         <div className="w-8 h-8 rounded-full bg-gold-gradient flex items-center justify-center text-[#0F172A] font-bold">
+                            {user.name.charAt(0)}
+                         </div>
+                         <div>
+                            <p className="text-xs text-green-400 font-bold">● Online</p>
+                            <span className="font-bold text-white">{user.name}</span>
+                         </div>
+                      </div>
+                      <button 
+                         onClick={() => { onLogout(); setIsMobileMenuOpen(false); }}
+                         className="text-xs bg-red-600/20 text-red-400 border border-red-600/50 px-3 py-1.5 rounded-lg font-bold"
+                      >
+                         Sign Out
+                      </button>
+                   </div>
+                ) : (
+                    /* Mobile Guest View */
+                    <div className="space-y-3">
+                       <div className="flex items-center justify-between text-gray-300">
+                          <div className="flex items-center gap-2">
+                             <User size={18} />
+                             <span className="font-bold">Guest Mode</span>
+                          </div>
+                       </div>
+                       <button 
+                         onClick={() => { onLogin(); setIsMobileMenuOpen(false); }}
+                         className="w-full flex items-center justify-center gap-2 py-2 bg-white text-[#0F172A] rounded-lg font-bold text-sm"
+                      >
+                         <LogIn size={16} />
+                         Sign In with Google
+                      </button>
+                    </div>
+                )}
+            </div>
+
             <nav className="flex flex-col space-y-3">
               {navItems.map((item) => (
                 <button

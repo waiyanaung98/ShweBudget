@@ -4,17 +4,19 @@ import Tracker from './components/Tracker';
 import Calculator from './components/Calculator';
 import Analytics from './components/Analytics';
 import Tools from './components/Tools';
-import { Transaction, TransactionType, MarketRates, CalculatorData } from './types';
+import { Transaction, TransactionType, MarketRates, CalculatorData, UserProfile, BackupData } from './types';
 import { Wallet, ArrowUpCircle, ArrowDownCircle, Settings } from 'lucide-react';
 
-// Mock Initial Data
+// Firebase Imports
+import { auth, googleProvider, db } from './firebase';
+import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
+import { doc, setDoc, onSnapshot, collection, addDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+
+// --- INITIAL DATA & CONSTANTS ---
 const INITIAL_DATA: Transaction[] = [
   { id: '1', date: '2024-09-15', description: 'Salary', amount: 18000, type: TransactionType.INCOME, category: 'Salary', currency: 'THB' },
   { id: '2', date: '2024-09-16', description: 'Housing Savings', amount: 15000, type: TransactionType.SAVING, category: 'Investment', currency: 'THB' },
   { id: '3', date: '2024-09-20', description: 'Food & Dining', amount: 3700, type: TransactionType.EXPENSE, category: 'Food', currency: 'THB' },
-  { id: '4', date: '2024-10-01', description: 'Salary', amount: 18000, type: TransactionType.INCOME, category: 'Salary', currency: 'THB' },
-  { id: '5', date: '2024-10-05', description: 'Monthly Saving', amount: 15000, type: TransactionType.SAVING, category: 'Investment', currency: 'THB' },
-  { id: '6', date: '2024-10-12', description: 'Utilities', amount: 3700, type: TransactionType.EXPENSE, category: 'Housing', currency: 'THB' },
 ];
 
 const INITIAL_RATES: MarketRates = {
@@ -38,76 +40,252 @@ const INITIAL_CALCULATOR_DATA: CalculatorData = {
   fundMonths: 6
 };
 
+// Keys for Guest Mode (LocalStorage)
+const KEY_THEME = 'theme';
+const KEY_GUEST_TRANSACTIONS = 'shwebudget_guest_transactions';
+const KEY_GUEST_RATES = 'shwebudget_guest_rates';
+const KEY_GUEST_CALC = 'shwebudget_guest_calc';
+
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   
-  // Theme State
+  // --- THEME ---
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
-    const saved = localStorage.getItem('theme');
+    const saved = localStorage.getItem(KEY_THEME);
     return saved === 'dark';
   });
+
+  // --- AUTH STATE (Firebase) ---
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+
+  // --- DATA STATES ---
+  const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_DATA);
+  const [marketRates, setMarketRates] = useState<MarketRates>(INITIAL_RATES);
+  const [calculatorData, setCalculatorData] = useState<CalculatorData>(INITIAL_CALCULATOR_DATA);
+
+  // 1. Auth Listener
+  useEffect(() => {
+    if (!auth) {
+        // Firebase Failed to Init (likely no config)
+        setIsAuthLoading(false);
+        return;
+    }
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        setUser({
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName || 'User',
+          createdAt: firebaseUser.metadata.creationTime || new Date().toISOString()
+        });
+      } else {
+        setUser(null);
+      }
+      setIsAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // 2. Data Loading Logic (Cloud vs Local)
+  useEffect(() => {
+    if (isAuthLoading) return;
+
+    if (user && db) {
+        // --- CLOUD MODE: Firestore Listeners ---
+        
+        // A. Settings (Rates & Calculator)
+        const settingsRef = doc(db, 'users', user.id, 'settings', 'config');
+        const unsubSettings = onSnapshot(settingsRef, (docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.rates) setMarketRates(data.rates);
+            if (data.calculator) setCalculatorData(data.calculator);
+          } else {
+            // Initialize User Data if empty
+            setDoc(settingsRef, { rates: INITIAL_RATES, calculator: INITIAL_CALCULATOR_DATA }, { merge: true });
+          }
+        });
+
+        // B. Transactions
+        const transRef = collection(db, 'users', user.id, 'transactions');
+        const unsubTrans = onSnapshot(transRef, (snapshot) => {
+             const tData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction));
+             // Sort by date desc
+             tData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+             setTransactions(tData);
+        });
+
+        return () => {
+            unsubSettings();
+            unsubTrans();
+        };
+
+    } else {
+        // --- GUEST MODE: LocalStorage ---
+        const savedT = localStorage.getItem(KEY_GUEST_TRANSACTIONS);
+        const savedR = localStorage.getItem(KEY_GUEST_RATES);
+        const savedC = localStorage.getItem(KEY_GUEST_CALC);
+
+        setTransactions(savedT ? JSON.parse(savedT) : INITIAL_DATA);
+        setMarketRates(savedR ? JSON.parse(savedR) : INITIAL_RATES);
+        setCalculatorData(savedC ? JSON.parse(savedC) : INITIAL_CALCULATOR_DATA);
+    }
+  }, [user, isAuthLoading]);
+
+  // 3. Save Data (Only for Guest Mode - Cloud saves instantly on action)
+  useEffect(() => {
+      if (!user) {
+          localStorage.setItem(KEY_GUEST_TRANSACTIONS, JSON.stringify(transactions));
+      }
+  }, [transactions, user]);
+
+  useEffect(() => {
+    if (!user) {
+        localStorage.setItem(KEY_GUEST_RATES, JSON.stringify(marketRates));
+    }
+  }, [marketRates, user]);
+
+  useEffect(() => {
+    if (!user) {
+        localStorage.setItem(KEY_GUEST_CALC, JSON.stringify(calculatorData));
+    }
+  }, [calculatorData, user]);
+
+
+  // --- ACTIONS ---
 
   const toggleTheme = () => {
     const newTheme = !isDarkMode;
     setIsDarkMode(newTheme);
-    localStorage.setItem('theme', newTheme ? 'dark' : 'light');
-    
-    // Toggle class on document element for global tailwind support (optional but good practice)
-    if (newTheme) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    localStorage.setItem(KEY_THEME, newTheme ? 'dark' : 'light');
+    if (newTheme) document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
   };
-
-  // Sync theme on mount
+  
+  // Theme Init
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    if (isDarkMode) document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
   }, []);
 
-  // Transactions State
-  const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    const saved = localStorage.getItem('transactions');
-    return saved ? JSON.parse(saved) : INITIAL_DATA;
-  });
 
-  // Market Rates State
-  const [marketRates, setMarketRates] = useState<MarketRates>(() => {
-    const saved = localStorage.getItem('marketRates');
-    return saved ? JSON.parse(saved) : INITIAL_RATES;
-  });
-
-  // Calculator Data State (Persisted)
-  const [calculatorData, setCalculatorData] = useState<CalculatorData>(() => {
-    const saved = localStorage.getItem('calculatorData');
-    return saved ? JSON.parse(saved) : INITIAL_CALCULATOR_DATA;
-  });
-
-  useEffect(() => {
-    localStorage.setItem('transactions', JSON.stringify(transactions));
-  }, [transactions]);
-
-  useEffect(() => {
-    localStorage.setItem('marketRates', JSON.stringify(marketRates));
-  }, [marketRates]);
-
-  useEffect(() => {
-    localStorage.setItem('calculatorData', JSON.stringify(calculatorData));
-  }, [calculatorData]);
-
-  const addTransaction = (t: Transaction) => {
-    setTransactions([...transactions, t]);
+  // AUTH ACTIONS
+  const handleLogin = async () => {
+    if (!auth) {
+        alert("Firebase not configured. Running in Guest Mode.");
+        return;
+    }
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+      console.error("Login Error:", error);
+      alert("Could not sign in. Please check your internet connection or Firebase config.");
+    }
   };
 
-  const deleteTransaction = (id: string) => {
-    setTransactions(transactions.filter(t => t.id !== id));
+  const handleLogout = async () => {
+    if (auth) {
+        await signOut(auth);
+        setActiveTab('dashboard');
+    }
   };
 
-  // Dashboard Summary Calculation (Normalized to MMK based on current rates)
+
+  // DATA ACTIONS
+  const addTransaction = async (t: Transaction) => {
+      if (user && db) {
+          const { id, ...data } = t; 
+          await addDoc(collection(db, 'users', user.id, 'transactions'), data);
+      } else {
+          setTransactions(prev => [...prev, t]);
+      }
+  };
+
+  const deleteTransaction = async (id: string) => {
+      if (user && db) {
+          await deleteDoc(doc(db, 'users', user.id, 'transactions', id));
+      } else {
+          setTransactions(prev => prev.filter(item => item.id !== id));
+      }
+  };
+
+  const updateRates = async (newRates: MarketRates) => {
+      setMarketRates(newRates); // Optimistic Update
+      if (user && db) {
+          const ref = doc(db, 'users', user.id, 'settings', 'config');
+          await setDoc(ref, { rates: newRates }, { merge: true });
+      }
+  };
+
+  const updateCalculatorData = async (newData: CalculatorData) => {
+      setCalculatorData(newData); // Optimistic Update
+      if (user && db) {
+          const ref = doc(db, 'users', user.id, 'settings', 'config');
+          await setDoc(ref, { calculator: newData }, { merge: true });
+      }
+  };
+
+
+  // BACKUP ACTIONS
+  const handleExportData = () => {
+    const data: BackupData = {
+      profile: user || { id: 'guest', name: 'Guest', createdAt: new Date().toISOString() },
+      transactions,
+      rates: marketRates,
+      calculator: calculatorData,
+      version: '2.0'
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `ShweBudget_${user ? user.name : 'Guest'}_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleImportData = async (file: File) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        try {
+            const json = JSON.parse(e.target?.result as string) as BackupData;
+            if (json.transactions && json.rates) {
+                 if(confirm(`Restore data? This will OVERWRITE current data.`)) {
+                     
+                     if (user && db) {
+                        alert("Restoring to Cloud... This may take a few seconds.");
+                        const batch = writeBatch(db);
+                        const settingsRef = doc(db, 'users', user.id, 'settings', 'config');
+                        batch.set(settingsRef, { rates: json.rates, calculator: json.calculator || INITIAL_CALCULATOR_DATA });
+                        await batch.commit();
+
+                        // Add Transactions (Simple loop)
+                        for (const t of json.transactions) {
+                             const { id, ...tData } = t;
+                             await addDoc(collection(db, 'users', user.id, 'transactions'), tData);
+                        }
+                        alert("Cloud restore complete.");
+                     } else {
+                        // Guest Restore
+                        setTransactions(json.transactions);
+                        setMarketRates(json.rates);
+                        if(json.calculator) setCalculatorData(json.calculator);
+                        alert('Data restored successfully!');
+                     }
+                 }
+            } else {
+                alert('Invalid backup file.');
+            }
+        } catch (err) {
+            alert('Error parsing backup file.');
+        }
+    };
+    reader.readAsText(file);
+  };
+
+  // SUMMARY CALCULATION
   const calculateSummary = () => {
     let income = 0;
     let expense = 0;
@@ -129,6 +307,7 @@ const App: React.FC = () => {
 
   const summary = calculateSummary();
 
+  // --- RENDER ---
   const DashboardCard = ({ title, amount, icon: Icon, colorClass, bgClass, trend }: any) => (
     <div className="bg-white dark:bg-[#0F172A] p-6 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-black/50 border border-gray-100 dark:border-gray-800 transition-transform hover:-translate-y-1 duration-300 min-w-0">
       <div className="flex justify-between items-start mb-4">
@@ -150,6 +329,8 @@ const App: React.FC = () => {
   );
 
   const renderContent = () => {
+    if (isAuthLoading) return <div className="h-full flex items-center justify-center text-[#D4AF37] animate-pulse">Connecting...</div>;
+
     switch (activeTab) {
       case 'dashboard':
         return (
@@ -165,7 +346,7 @@ const App: React.FC = () => {
                       </h3>
                       <p className="text-gray-400 mt-3 text-sm flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-[#D4AF37] flex-shrink-0 animate-pulse"></span>
-                        Current available wealth (Income - Expenses)
+                        Current available wealth
                       </p>
                    </div>
                    <div className="hidden md:block p-4 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-sm flex-shrink-0">
@@ -183,7 +364,6 @@ const App: React.FC = () => {
                    </div>
                 </div>
 
-                {/* Updated Income to Green (Emerald) */}
                 <DashboardCard 
                   title="Total Income" 
                   amount={summary.income} 
@@ -210,11 +390,10 @@ const App: React.FC = () => {
                         <Settings className="text-gray-400 dark:text-gray-300 group-hover:text-[#0F172A] transition-colors" />
                     </div>
                     <p className="text-sm font-bold text-gray-700 dark:text-gray-200">App Settings</p>
-                    <p className="text-xs text-gray-400">Rates & Converters</p>
+                    <p className="text-xs text-gray-400">Rates & Backup</p>
                 </div>
              </div>
 
-             {/* Mini Analytics Preview */}
              <div className="bg-white dark:bg-[#0F172A] p-8 rounded-3xl shadow-lg shadow-gray-200/50 dark:shadow-black/50 border border-gray-100 dark:border-gray-800 overflow-hidden transition-colors duration-300">
                 <div className="flex items-center justify-between mb-6">
                     <h3 className="text-xl font-bold text-[#1E2A38] dark:text-[#FCD34D]">Financial Overview</h3>
@@ -227,32 +406,45 @@ const App: React.FC = () => {
       case 'tracker':
         return <Tracker transactions={transactions} addTransaction={addTransaction} deleteTransaction={deleteTransaction} />;
       case 'calculator':
-        return <Calculator rates={marketRates} data={calculatorData} onUpdate={setCalculatorData} />;
+        return <Calculator rates={marketRates} data={calculatorData} onUpdate={updateCalculatorData} />;
       case 'analytics':
         return <Analytics transactions={transactions} rates={marketRates} />;
       case 'tools':
-        return <Tools rates={marketRates} updateRates={setMarketRates} />;
+        return <Tools 
+          rates={marketRates} 
+          updateRates={updateRates} 
+          onExportData={handleExportData}
+          onImportData={handleImportData}
+        />;
       default:
         return <div>Not Found</div>;
     }
   };
 
   return (
-    <Layout activeTab={activeTab} setActiveTab={setActiveTab} isDarkMode={isDarkMode} toggleTheme={toggleTheme}>
+    <Layout 
+      activeTab={activeTab} 
+      setActiveTab={setActiveTab} 
+      isDarkMode={isDarkMode} 
+      toggleTheme={toggleTheme}
+      user={user}
+      onLogin={handleLogin}
+      onLogout={handleLogout}
+    >
       <div className="mb-8">
         <h1 className="text-2xl md:text-3xl font-bold text-[#1E2A38] dark:text-white tracking-tight transition-colors">
-          {activeTab === 'dashboard' && 'Dashboard'}
+          {activeTab === 'dashboard' && (user ? `Hello, ${user.name}` : 'Dashboard (Guest Mode)')}
           {activeTab === 'tools' && 'Tools & Settings'}
           {activeTab === 'tracker' && 'Income & Expenses'}
           {activeTab === 'calculator' && 'Financial Calculators'}
           {activeTab === 'analytics' && 'Financial Analytics'}
         </h1>
         <p className="text-gray-500 dark:text-gray-400 mt-2 font-medium text-sm md:text-base transition-colors">
-          {activeTab === 'dashboard' && 'Welcome back to your financial overview.'}
-          {activeTab === 'tools' && 'Manage app exchange rates, calculate gold prices and conversions.'}
-          {activeTab === 'tracker' && 'Track every kyat, baht, and dollar.'}
-          {activeTab === 'calculator' && 'Plan your loans, savings, and safety nets.'}
-          {activeTab === 'analytics' && 'Visualize your financial health over time.'}
+          {user ? <span className="text-green-500 font-bold">● Cloud Sync Active</span> : 'Guest Mode (Local Storage)'}
+          {' | '}{activeTab === 'dashboard' && 'Welcome to your premium dashboard.'}
+          {activeTab === 'tools' && 'Manage rates, gold prices and backup.'}
+          {activeTab === 'tracker' && 'Track transactions in multiple currencies.'}
+          {activeTab === 'calculator' && 'Advanced financial planning tools.'}
         </p>
       </div>
       {renderContent()}

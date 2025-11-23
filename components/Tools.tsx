@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { Settings, Coins, Calculator, ArrowRightLeft, Save, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Settings, Coins, Calculator, ArrowRightLeft, Save, RefreshCw, Download, Upload, AlertTriangle } from 'lucide-react';
 import { MarketRates } from '../types';
 
 interface ToolsProps {
   rates: MarketRates;
   updateRates: (newRates: MarketRates) => void;
+  // Backup Props
+  onExportData: () => void;
+  onImportData: (file: File) => void;
 }
 
-const Tools: React.FC<ToolsProps> = ({ rates, updateRates }) => {
+const Tools: React.FC<ToolsProps> = ({ rates, updateRates, onExportData, onImportData }) => {
   // --- Gold Calculator State ---
   const [goldPrice, setGoldPrice] = useState<number>(rates.Gold);
   const [kyat, setKyat] = useState<number>(0);
@@ -24,6 +27,7 @@ const Tools: React.FC<ToolsProps> = ({ rates, updateRates }) => {
   // --- Local Rate State (for editing) ---
   const [localRates, setLocalRates] = useState<MarketRates>(rates);
   const [isSaved, setIsSaved] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Update local rates when props change
   useEffect(() => {
@@ -67,6 +71,12 @@ const Tools: React.FC<ToolsProps> = ({ rates, updateRates }) => {
     setTimeout(() => setIsSaved(false), 2000);
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      onImportData(e.target.files[0]);
+    }
+  };
+
   const formatMoney = (val: number, curr: string) => {
     return new Intl.NumberFormat('en-US', { 
         maximumFractionDigits: 2,
@@ -77,7 +87,7 @@ const Tools: React.FC<ToolsProps> = ({ rates, updateRates }) => {
   return (
     <div className="space-y-8 animate-fade-in max-w-7xl mx-auto pb-12">
       
-      {/* 1. App Configuration (Exchange Rates) - Redesigned Layout */}
+      {/* 1. App Configuration (Exchange Rates) */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-[#B38728]/20 p-6 md:p-8 relative overflow-hidden transition-colors duration-300">
         <div className="absolute top-0 left-0 w-full h-1.5 bg-gold-gradient"></div>
         <div className="flex items-center gap-3 mb-8 pb-4 border-b border-gray-100 dark:border-slate-700">
@@ -306,6 +316,38 @@ const Tools: React.FC<ToolsProps> = ({ rates, updateRates }) => {
                 </div>
              </div>
           </div>
+      </div>
+      
+      {/* 4. Data Management (Backup/Restore) */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-gray-100 dark:border-slate-700 p-8">
+         <h3 className="text-xl font-bold text-[#1E2A38] dark:text-white mb-6">Data Management & Backup</h3>
+         <div className="flex flex-col md:flex-row gap-6">
+            <button 
+                onClick={onExportData}
+                className="flex-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-6 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all text-left group"
+            >
+                <div className="flex items-center gap-3 mb-2">
+                    <Download className="text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
+                    <span className="font-bold text-blue-900 dark:text-blue-200">Backup Data (Download)</span>
+                </div>
+                <p className="text-xs text-blue-700 dark:text-blue-300">Save all your transactions, rates, and calculator data to a file.</p>
+            </button>
+            
+            <label className="flex-1 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 p-6 rounded-xl hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-all text-left group cursor-pointer">
+                <div className="flex items-center gap-3 mb-2">
+                    <Upload className="text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform" />
+                    <span className="font-bold text-purple-900 dark:text-purple-200">Restore Data (Upload)</span>
+                </div>
+                <p className="text-xs text-purple-700 dark:text-purple-300">Load a previously saved backup file. This will replace current data.</p>
+                <input 
+                    type="file" 
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept=".json"
+                    className="hidden"
+                />
+            </label>
+         </div>
       </div>
     </div>
   );
