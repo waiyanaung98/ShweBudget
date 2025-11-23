@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Calculator, Wallet, Menu, X, PieChart, PenTool, Bean, Moon, Sun } from 'lucide-react';
+import { LayoutDashboard, Calculator, Wallet, Menu, X, PieChart, PenTool, Moon, Sun } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -8,6 +8,44 @@ interface LayoutProps {
   isDarkMode: boolean;
   toggleTheme: () => void;
 }
+
+// Custom Premium Gold Coin (Round) Logo
+const GoldCoinLogo = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <defs>
+      <linearGradient id="coinGrad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#FFFBEB" />
+        <stop offset="25%" stopColor="#FCD34D" />
+        <stop offset="50%" stopColor="#D97706" />
+        <stop offset="100%" stopColor="#78350F" />
+      </linearGradient>
+      <linearGradient id="innerGrad" x1="18" y1="18" x2="6" y2="6" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#B45309" />
+        <stop offset="40%" stopColor="#F59E0B" />
+        <stop offset="100%" stopColor="#FEF3C7" />
+      </linearGradient>
+      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur stdDeviation="1" result="blur"/>
+        <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+      </filter>
+    </defs>
+    
+    {/* Outer Edge */}
+    <circle cx="12" cy="12" r="11" fill="url(#coinGrad)" stroke="#92400E" strokeWidth="0.5"/>
+    
+    {/* Detailed Rim */}
+    <circle cx="12" cy="12" r="9" fill="none" stroke="#FFFBEB" strokeWidth="0.5" strokeOpacity="0.5" strokeDasharray="0.5 1"/>
+    
+    {/* Inner Core */}
+    <circle cx="12" cy="12" r="7.5" fill="url(#innerGrad)" stroke="#78350F" strokeWidth="0.2" />
+    
+    {/* 'S' Monogram */}
+    <text x="12" y="15.5" fontSize="11" fontWeight="900" fontFamily="serif" textAnchor="middle" fill="#78350F" style={{ textShadow: '0px 1px 0px rgba(255,255,255,0.4)' }}>S</text>
+    
+    {/* Shine Reflection */}
+    <path d="M8 6C8 6 10 4 12 4C14 4 16 6 16 6" stroke="white" strokeWidth="1" strokeLinecap="round" strokeOpacity="0.6" />
+  </svg>
+);
 
 const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, isDarkMode, toggleTheme }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -27,15 +65,21 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, isDa
         {/* Background Texture */}
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none"></div>
 
-        <div className="p-8 flex items-center gap-4 border-b border-[#B38728]/20 relative overflow-hidden">
-          {/* Gold Bean Logo (Shwe Pae) */}
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-300 via-yellow-500 to-amber-600 flex items-center justify-center text-white shadow-[0_0_25px_rgba(251,191,36,0.6)] z-10 shrink-0 ring-1 ring-[#FCF6BA]/50 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-white/30 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
-            <Bean size={26} strokeWidth={2.5} className="relative z-10 drop-shadow-md group-hover:scale-110 transition-transform duration-300 -rotate-45" />
+        <div className="p-8 flex items-center gap-4 border-b border-[#B38728]/20 relative overflow-hidden group">
+          {/* Logo Container */}
+          <div className="relative w-14 h-14 flex-shrink-0">
+             {/* Subtle Back Glow */}
+             <div className="absolute inset-0 bg-[#B38728] rounded-full blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-500"></div>
+             
+             {/* Icon */}
+             <div className="relative z-10 w-full h-full flex items-center justify-center drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] transition-transform duration-500 group-hover:scale-105 group-hover:rotate-12">
+                <GoldCoinLogo className="w-full h-full drop-shadow-lg" />
+             </div>
           </div>
-          <div className="z-10 min-w-0">
-            <span className="text-2xl font-bold tracking-tight block bg-gold-text bg-clip-text text-transparent drop-shadow-sm">ShweBudget</span>
-            <span className="text-[10px] text-[#B38728] font-bold tracking-[0.2em] uppercase">Premium</span>
+
+          <div className="z-10 min-w-0 flex flex-col justify-center">
+            <span className="text-2xl font-bold tracking-tight block bg-gold-text bg-clip-text text-transparent drop-shadow-sm font-sans">ShweBudget</span>
+            <span className="text-[10px] text-[#B38728] font-bold tracking-[0.3em] uppercase pl-0.5">Premium</span>
           </div>
         </div>
         
@@ -87,9 +131,9 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, isDa
       <div className="flex-1 flex flex-col h-screen overflow-hidden relative min-w-0 transition-colors duration-300 bg-gray-50 dark:bg-[#020617]">
         <header className="md:hidden flex items-center justify-between p-4 bg-[#0F172A] dark:bg-black text-white shadow-md z-40 sticky top-0 flex-shrink-0 border-b border-[#B38728]/30">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-300 via-yellow-500 to-amber-600 flex items-center justify-center text-white shadow-[0_0_15px_rgba(251,191,36,0.5)] ring-1 ring-[#FCF6BA]/30">
-              <Bean size={20} strokeWidth={2.5} className="drop-shadow-sm -rotate-45" />
-            </div>
+             <div className="relative w-10 h-10">
+                <GoldCoinLogo className="w-full h-full drop-shadow-md" />
+             </div>
             <span className="font-bold text-lg bg-gold-text bg-clip-text text-transparent">ShweBudget</span>
           </div>
           <div className="flex items-center gap-2">
